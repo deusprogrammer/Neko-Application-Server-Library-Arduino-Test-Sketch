@@ -158,6 +158,7 @@ void loop() {
               // close the connection:
               client.stop();
             }
+            break;
           case POST:
             client.println("Unable to find web service you requested");
             delay(1);
