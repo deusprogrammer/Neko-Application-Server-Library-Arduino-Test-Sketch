@@ -69,8 +69,9 @@ void loop() {
   if (client) {
     // an http request ends with a blank line
     boolean currentLineIsBlank = true;
-    char line[1024];
+    char line[256];
     int nBytes = 0;
+    
     while (client.connected()) {
       if (client.available()) {
         char c = client.read();
@@ -79,6 +80,15 @@ void loop() {
         // character) and the line is blank, the http request has ended,
         // so you can send a reply
         if (c == '\n' && currentLineIsBlank) {
+          if (header.getContentLength()) {
+            int contentLength = header.getContentLength();
+            Serial.println("DATA");
+            for (int i = 0; i < contentLength; i++) {
+              char c = client.read();
+              Serial.write(c);
+            }
+          }          
+          
           // send a standard http response header
           client.println("HTTP/1.1 200 OK");
           client.println("Content-Type: text/html");
@@ -88,10 +98,11 @@ void loop() {
           client.println("<html>");
           
           //Determine what webservice is being requested
-          if (strcmp(header.getResource(), "/ledBlink") == 0 && header.fetchQuery("repeat") && header.fetchQuery("pin")) {
+          if (strcmp(header.getResource(), "/ledBlink") == 0 && header.fetchQuery("repeat") && header.fetchQuery("pin") && header.fetchQuery("period")) {
             pin = atoi(header.fetchQuery("pin"));
             //pulseDelay = atoi(header.fetchQuery("pulseDelay"));
             int repeat = atoi(header.fetchQuery("repeat"));
+            int period = atoi(header.fetchQuery("period"));
             
             pinMode(pin, OUTPUT);
             mode = 1;
@@ -113,11 +124,11 @@ void loop() {
             client.stop();
             
             for (int i = 0; i < repeat; i++) {
+              delay(period/2);
               pinMode(pin, OUTPUT);
-              digitalWrite(pin, LOW);
-              delay(1000);
               digitalWrite(pin, HIGH);
-              Serial.println(i);
+              delay(period/2);
+              digitalWrite(pin, LOW);
             }
           }
           else {
@@ -141,7 +152,7 @@ void loop() {
         } 
         else if (c != '\r') {
           // you've gotten a character on the current line
-          if (nBytes < 1024)
+          if (nBytes < 256)
             line[nBytes++] = c;
           currentLineIsBlank = false;
         }
