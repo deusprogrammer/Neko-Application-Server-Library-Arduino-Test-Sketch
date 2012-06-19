@@ -95,50 +95,90 @@ void loop() {
           client.println("Connnection: close");
           client.println();
           client.println("<!DOCTYPE HTML>");
-          client.println("<html>");
-          
+                    
           //Determine what webservice is being requested
-          if (strcmp(header.getResource(), "/ledBlink") == 0 && header.fetchQuery("repeat") && header.fetchQuery("pin") && header.fetchQuery("period")) {
-            pin = atoi(header.fetchQuery("pin"));
-            //pulseDelay = atoi(header.fetchQuery("pulseDelay"));
-            int repeat = atoi(header.fetchQuery("repeat"));
-            int period = atoi(header.fetchQuery("period"));
-            
-            pinMode(pin, OUTPUT);
-            mode = 1;
-            //if (lastId >= 0)
-              //t.stop(lastId);
-            //lastId = t.every(pulseDelay, flashLed);
-            
-            client.print("Request received to pulse LED on pin ");
-            client.print(header.fetchQuery("pin"));
-            client.print(" ");
-            client.print(header.fetchQuery("repeat"));
-            client.print(" times.");
-            client.println("<br />");
-            client.println("</html>");
-            
-            // give the web browser time to receive the data
-            delay(1);
-            // close the connection:
-            client.stop();
-            
-            for (int i = 0; i < repeat; i++) {
-              delay(period/2);
+          switch (header.getVerb()) {
+          case GET:
+            if (strcmp(header.getResource(), "/pinControl/pulse") == 0 && header.fetchQuery("repeat") && header.fetchQuery("pin") && header.fetchQuery("period")) {
+              pin = atoi(header.fetchQuery("pin"));
+              //pulseDelay = atoi(header.fetchQuery("pulseDelay"));
+              int repeat = atoi(header.fetchQuery("repeat"));
+              int period = atoi(header.fetchQuery("period"));
+              
+              pinMode(pin, OUTPUT);
+
+              client.println("<html>");
+              client.print("Request received to pulse pin ");
+              client.print(header.fetchQuery("pin"));
+              client.print(" ");
+              client.print(header.fetchQuery("repeat"));
+              client.print(" times.");
+              client.println("<br />");
+              client.println("</html>");
+              
+              delay(1);
+              client.stop();
+              
+              for (int i = 0; i < repeat; i++) {
+                delay(period/2);
+                pinMode(pin, OUTPUT);
+                digitalWrite(pin, HIGH);
+                delay(period/2);
+                digitalWrite(pin, LOW);
+              }
+            }
+            else if (strcmp(header.getResource(), "/pinControl/on") == 0 && header.fetchQuery("pin")) {
+              pin = atoi(header.fetchQuery("pin"));
+              
+              client.println("<html>");
+              client.print("Request received to power on pin ");
+              client.print(header.fetchQuery("pin"));
+              client.println("<br />");
+              client.println("</html>");
+              
               pinMode(pin, OUTPUT);
               digitalWrite(pin, HIGH);
-              delay(period/2);
+            }
+            else if (strcmp(header.getResource(), "/pinControl/off") == 0 && header.fetchQuery("pin")) {
+              pin = atoi(header.fetchQuery("pin"));
+              
+              client.println("<html>");
+              client.print("Request received to power off pin ");
+              client.print(header.fetchQuery("pin"));
+              client.println("<br />");
+              client.println("</html>");
+              
+              pinMode(pin, OUTPUT);
               digitalWrite(pin, LOW);
             }
-          }
-          else {
+            else {
+              client.println("Unable to find web service you requested");
+              // give the web browser time to receive the data
+              delay(1);
+              // close the connection:
+              client.stop();
+            }
+          case POST:
             client.println("Unable to find web service you requested");
-            // give the web browser time to receive the data
             delay(1);
-            // close the connection:
             client.stop();
-
-          }
+            break;
+          case PUT:
+            client.println("Unable to find web service you requested");
+            delay(1);
+            client.stop();
+            break;
+          case DELETE:
+            client.println("Unable to find web service you requested");
+            delay(1);
+            client.stop();
+            break;
+          default:
+            client.println("Unable to find web service you requested");
+            delay(1);
+            client.stop();
+            break;
+          };
           
           header.reset();
           break;
