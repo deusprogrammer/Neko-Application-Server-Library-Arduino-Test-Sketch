@@ -17,6 +17,8 @@
  by David A. Mellis
  modified 9 Apr 2012
  by Tom Igoe
+ modified 21 Jun 2012
+ by Michael Main (added RESTful API)
  
  */
 
@@ -27,7 +29,7 @@
 // The IP address will be dependent on your local network:
 byte mac[] = { 
   0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xED };
-IPAddress ip(192,168,137,200);
+IPAddress ip(10,0,0,2);
 
 int lastId = -1;
 int pin = 7;
