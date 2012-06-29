@@ -19,20 +19,8 @@
 
 #include <SPI.h>
 #include <Ethernet.h>
-#include <httpHeader.h>
 #include <neko.h>
 
-// Enter a MAC address and IP address for your controller below.
-// The IP address will be dependent on your local network:
-byte mac[] = { 
-  0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xED };
-IPAddress ip(10,0,0,2);
-
-// Initialize the Ethernet server library
-// with the IP address and port you want to use 
-// (port 80 is default for HTTP):
-EthernetServer server(80);
-HTTPHeader header;
 ApplicationServer appServer;
 
 void* pulseLed(EthernetClient* client, HTTPHeader* header, void* data) {
@@ -127,10 +115,6 @@ void* ledOn(EthernetClient* client, HTTPHeader* header, void* data) {
 void setup() {
  // Open serial communications and wait for port to open:
   Serial.begin(9600);
-  
-  // start the Ethernet connection and the server:
-  Ethernet.begin(mac, ip);
-  server.begin();
 
   appServer.addService(GET, "/pinControl/pulse", pulseLed);
   appServer.addService(GET, "/pinControl/on", ledOn);
@@ -138,57 +122,7 @@ void setup() {
 }
 
 void loop() {
-  WebService* service;
-  
-  // listen for incoming clients
-  EthernetClient client = server.available();
-  if (client) {
-    // an http request ends with a blank line
-    boolean currentLineIsBlank = true;
-    char line[256];
-    int nBytes = 0;
-    
-    while (client.connected()) {
-      if (client.available()) {
-        char c = client.read();
-        if (c == '\n' && currentLineIsBlank) {
-          Serial.print("HEADER: ");
-          Serial.println(header.getResource());
-          if (header.getContentLength()) {
-            int contentLength = header.getContentLength();
-            Serial.println("DATA");
-            for (int i = 0; i < contentLength; i++) {
-              char c = client.read();
-              Serial.write(c);
-            }
-          }
-
-          service = appServer.fetchService(header.getVerb(), header.getResource());
-          
-          if (service)
-            service->callback(&client, &header, NULL);
-          else {
-            client.println("Unable to find web service you requested");
-            delay(1);
-            client.stop();
-          }
-            
-          header.reset();
-        }
-        else if (c == '\n') {
-          line[nBytes] = 0;
-          header.consumeLine(line);
-          nBytes = 0;
-          currentLineIsBlank = true;
-        } 
-        else if (c != '\r') {
-          if (nBytes < 256)
-            line[nBytes++] = c;
-          currentLineIsBlank = false;
-        }
-      }
-    }
-  }
+  appServer.loop();
 }
 
 
