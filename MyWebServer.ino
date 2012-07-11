@@ -17,11 +17,45 @@
  
  */
 
-#include <SPI.h>
-#include <Ethernet.h>
 #include <neko.h>
 
 ApplicationServer appServer;
+
+void* dim(EthernetClient* client, HTTPHeader* header, void* data) {
+  // send a standard http response header
+  client->println("HTTP/1.1 200 OK");
+  client->println("Content-Type: text/html");
+  client->println("Connnection: close");
+  client->println();
+  
+  if (!header->fetchQuery("pin"))
+    return NULL;
+  
+  int pin = atoi(header->fetchQuery("pin"));
+  int period = 10;
+  //float intensity = atof(header->fetchQuery("intensity"));
+  
+  pinMode(pin, OUTPUT);
+
+  client->println("<html>");
+  client->print("Request received to pulse pin ");
+  client->print(header->fetchQuery("pin"));
+  client->println("<br />");
+  client->println("</html>");
+              
+  delay(1);
+  client->stop();
+              
+  for (float intensity = 0; intensity < 1; intensity += 0.001) {
+    delay(period*(1 - intensity));
+    pinMode(pin, OUTPUT);
+    digitalWrite(pin, HIGH);
+    delay(period*(intensity));
+    digitalWrite(pin, LOW);
+  }
+  
+  return NULL;
+}
 
 void* pulseLed(EthernetClient* client, HTTPHeader* header, void* data) {
   // send a standard http response header
@@ -30,13 +64,15 @@ void* pulseLed(EthernetClient* client, HTTPHeader* header, void* data) {
   client->println("Connnection: close");
   client->println();
   
-  if (!header->fetchQuery("pin") || !header->fetchQuery("repeat") || !header->fetchQuery("period"))
+  if (!header->fetchQuery("pin") || !header->fetchQuery("repeat") || !header->fetchQuery("period") || !header->fetchQuery("low") || !header->fetchQuery("high"))
     return NULL;
   
   int pin = atoi(header->fetchQuery("pin"));
   int repeat = atoi(header->fetchQuery("repeat"));
   int period = atoi(header->fetchQuery("period"));
-              
+  float high = atof(header->fetchQuery("high"));
+  float low = atof(header->fetchQuery("low"));
+  
   pinMode(pin, OUTPUT);
 
   client->println("<html>");
@@ -52,10 +88,10 @@ void* pulseLed(EthernetClient* client, HTTPHeader* header, void* data) {
   client->stop();
               
   for (int i = 0; i < repeat; i++) {
-    delay(period/2);
+    delay(period*low);
     pinMode(pin, OUTPUT);
     digitalWrite(pin, HIGH);
-    delay(period/2);
+    delay(period*high);
     digitalWrite(pin, LOW);
   }
   
@@ -119,6 +155,7 @@ void setup() {
   appServer.addService(GET, "/pinControl/pulse", pulseLed);
   appServer.addService(GET, "/pinControl/on", ledOn);
   appServer.addService(GET, "/pinControl/off", ledOff);
+  appServer.addService(GET, "/pinControl/dim", dim);
 }
 
 void loop() {
