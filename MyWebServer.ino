@@ -19,7 +19,7 @@
 
 #include <neko.h>
 
-ApplicationServer appServer;
+ApplicationServer appServer("192.168.137.100", "80");
 
 void* dim(EthernetClient* client, HTTPHeader* header, void* data) {
   // send a standard http response header
